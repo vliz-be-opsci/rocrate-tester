@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Custom RO-Crate Upload</title>
+  <link rel="stylesheet" href="./src/index.css">
+  <link href="https://open-science.vliz.be/rocrate-preview-widget/static/css/main.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/react/umd/react.production.min.js" crossorigin></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-bootstrap@next/dist/react-bootstrap.min.js" crossorigin></script>
+  <script defer="defer" src="https://open-science.vliz.be/rocrate-preview-widget/static/js/main.js"></script>
+</head>
+<body>
+  <div id="json-editor" class="tab-panel">
+    <input type="file" id="json-upload" accept=".json" class="file-input">
+    <textarea id="json-textarea" class="json-textarea" placeholder="Edit JSON data here..."></textarea>
+    <button id="apply-changes" class="apply-button">Apply Changes</button>
+  </div>
+  <br />
+  <rocrate-preview-widget id="rocrate-preview-webwidget" rocrate='https://raw.githubusercontent.com/emo-bon/observatory-bpns-crate/refs/heads/gh-pages/ro-crate-metadata.json' rocrate_name="example" version="." />
+  <script>
+    // Tab switching logic
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabPanels = document.querySelectorAll('.tab-panel');
+
+    tabButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        tabPanels.forEach(panel => panel.classList.remove('active'));
+
+        button.classList.add('active');
+        document.getElementById(button.dataset.tab).classList.add('active');
+      });
+    });
+
+    // File upload and JSON parsing
+    const fileInput = document.getElementById('json-upload');
+    const jsonTextarea = document.getElementById('json-textarea');
+    const applyButton = document.getElementById('apply-changes');
+    const reviewWidgetContainer = document.getElementById('rocrate-preview-webwidget').parentNode;
+
+    fileInput.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const jsonData = JSON.parse(e.target.result);
+            console.log('Parsed JSON:', jsonData);
+            jsonTextarea.value = JSON.stringify(jsonData, null, 2);
+          } catch (error) {
+            window.alert('Invalid JSON file.');
+          }
+        };
+        reader.readAsText(file);
+      }
+    });
+
+    // Update widget on textarea changes
+    applyButton.addEventListener('click', () => {
+      try {
+        const jsonData = JSON.parse(jsonTextarea.value);
+
+        // Remove the existing widget
+        const oldWidget = document.getElementById('rocrate-preview-webwidget');
+        if (oldWidget) {
+          reviewWidgetContainer.removeChild(oldWidget);
+        }
+
+        // Create a new widget with updated JSON
+        const newWidget = document.createElement('rocrate-preview-widget');
+        newWidget.id = 'rocrate-preview-webwidget';
+        newWidget.setAttribute('rocrate', JSON.stringify(jsonData));
+        newWidget.setAttribute('rocrate_name', 'example');
+        newWidget.setAttribute('version', '.');
+
+        // Append the new widget to the container
+        reviewWidgetContainer.appendChild(newWidget);
+      } catch (error) {
+        if (typeof jsonTextarea.value === 'string' && jsonTextarea.value.trim().startsWith('http')) {
+          // Remove the existing widget
+          const oldWidget = document.getElementById('rocrate-preview-webwidget');
+          if (oldWidget) {
+            reviewWidgetContainer.removeChild(oldWidget);
+          }
+          // Create a new widget with the URL as the rocrate attribute
+          const newWidget = document.createElement('rocrate-preview-widget');
+          newWidget.id = 'rocrate-preview-webwidget';
+          newWidget.setAttribute('rocrate', jsonTextarea.value.trim());
+          newWidget.setAttribute('rocrate_name', 'example');
+          newWidget.setAttribute('version', '.');
+          reviewWidgetContainer.appendChild(newWidget);
+          return;
+        }
+        window.alert('Invalid JSON content. Trying to parse as string');
+
+      }
+    });
+  </script>
+</body>
+</html>
