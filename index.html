@@ -84,13 +84,31 @@
           if (oldWidget) {
             reviewWidgetContainer.removeChild(oldWidget);
           }
-          // Create a new widget with the URL as the rocrate attribute
-          const newWidget = document.createElement('rocrate-preview-widget');
-          newWidget.id = 'rocrate-preview-webwidget';
-          newWidget.setAttribute('rocrate', jsonTextarea.value.trim());
-          newWidget.setAttribute('rocrate_name', 'example');
-          newWidget.setAttribute('version', '.');
-          reviewWidgetContainer.appendChild(newWidget);
+
+          // try and get JSON from the URL , accept header application/ld+json
+          fetch(jsonTextarea.value.trim(), {
+            headers: {
+              'Accept': 'application/ld+json'
+            }
+          })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Network response was not ok');
+            }
+            return response.json();
+          })
+          .then(jsonData => {
+            // Create a new widget with the fetched JSON
+            const newWidget = document.createElement('rocrate-preview-widget');
+            newWidget.id = 'rocrate-preview-webwidget';
+            newWidget.setAttribute('rocrate', JSON.stringify(jsonData));
+            newWidget.setAttribute('rocrate_name', 'example');
+            newWidget.setAttribute('version', '.');
+            reviewWidgetContainer.appendChild(newWidget);
+          })
+          .catch(error => {
+            window.alert('Failed to fetch JSON from the URL: ' + error.message);
+          });
           return;
         }
         window.alert('Invalid JSON content. Trying to parse as string');
